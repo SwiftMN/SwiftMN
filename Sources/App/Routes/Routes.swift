@@ -20,10 +20,10 @@ extension Droplet {
 
         /// REST endpoints for Talks
         try resource("talks", TalkController.self)
-
+        
         /// Slack Slash Commands
         grouped(slackCommandValidator).group("slashCommand") { route in
-            let slackController = SlackController()
+            let slackController = SlashCommandController()
             route.post("list_talks", handler: slackController.listTalks)
             route.post("suggest_talk", handler: slackController.suggestTalk)
         }
