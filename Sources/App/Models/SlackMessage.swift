@@ -11,13 +11,13 @@ enum SlackMessageType: String {
     case inChannel = "in_channel"
 }
 
-protocol SlackMessage {
+protocol SlackMessageProtocol {
     var text: String { get }
-    var attachments: [MessageAttachment] { get }
+    var attachments: [MessageAttachmentProtocol] { get }
     var responseType: SlackMessageType { get }
 }
 
-extension SlackMessage where Self: JSONRepresentable {
+extension SlackMessageProtocol where Self: JSONRepresentable {
     func makeJSON() throws -> JSON {
         var json = JSON()
         try json.set("response_type", responseType.rawValue)
@@ -27,7 +27,19 @@ extension SlackMessage where Self: JSONRepresentable {
     }
 }
 
-protocol MessageAttachment {
+struct SlackMessage: SlackMessageProtocol, JSONRepresentable {
+    let text: String
+    let attachments: [MessageAttachmentProtocol]
+    let responseType: SlackMessageType
+    
+    init(text: String, attachments: [MessageAttachmentProtocol] = [], responseType: SlackMessageType = .inChannel) {
+        self.text = text
+        self.attachments = attachments
+        self.responseType = responseType
+    }
+}
+
+protocol MessageAttachmentProtocol {
     
     var fallback: String { get }
     var title: String { get }
@@ -40,7 +52,7 @@ protocol MessageAttachment {
     var color: String? { get }
 }
 
-extension MessageAttachment where Self: JSONRepresentable {
+extension MessageAttachmentProtocol where Self: JSONRepresentable {
     func makeJSON() throws -> JSON {
         var json = JSON()
         try json.set("fallback", fallback)
