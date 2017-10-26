@@ -2,24 +2,27 @@ import Vapor
 
 extension Droplet {
     func setupRoutes() throws {
-        get("hello") { req in
+        get { req in
             var json = JSON()
             try json.set("hello", "world")
             return json
         }
 
-        get("plaintext") { req in
-            return "Hello, world!"
-        }
+        try resource("talks", TalkController.self)
 
-        // response to requests to /info domain
-        // with a description of the request
-        get("info") { req in
-            return req.description
+    
+        guard let verificationToken = config["slack", "token"]?.string else {
+            throw Abort(.internalServerError, reason: "Unable to create SlackController")
         }
-
-        get("description") { req in return req.description }
+        let slackCommandValidator = SlackCommandValidator(verificationToken: verificationToken)
         
-        try resource("posts", PostController.self)
+        grouped(slackCommandValidator).post("bot", "talks", "list") { req in
+            return try SlackController().listTalks(req, client: self.client)
+        }
+        grouped(slackCommandValidator).post("bot", "talks", "suggest") { req in
+            return try SlackController().suggestTalk(req, client: self.client)
+        }
+
     }
 }
+
