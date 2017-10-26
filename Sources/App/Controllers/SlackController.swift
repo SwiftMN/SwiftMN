@@ -10,20 +10,29 @@ import HTTP
 
 final class SlackController {
     
-    func listTalks(_ req: Request, client: ClientFactoryProtocol) throws -> ResponseRepresentable {
+    private func respond(to request: Request, with body: BodyRepresentable? = nil) throws -> HTTP.Response {
+        let responseUrl = try request.responseUrl()
+        return try EngineClient.factory.post(
+            responseUrl,
+            query: [:],
+            [HeaderKey.contentType: "application/json"],
+            body
+        )
+    }
+    
+    func listTalks(_ request: Request) throws -> ResponseRepresentable {
 
-        let responseUrl = try req.responseUrl()
         let talks = try Talk.all()
         let message = try ListTalksMessage(talks: talks).makeJSON()
-        
+
         background {
-            let _ = try? client.post(responseUrl, query: [:], [HeaderKey.contentType: "application/json"], message)
+            let _ = try? self.respond(to: request, with: message)
         }
 
         return "Hang tight while I fetch those for you."
     }
     
-    func suggestTalk(_ req: Request, client: ClientFactoryProtocol) throws -> ResponseRepresentable {
+    func suggestTalk(_ req: Request) throws -> ResponseRepresentable {
         let text = try req.text()
         let talk = Talk(content: text)
         try talk.save()
@@ -31,7 +40,7 @@ final class SlackController {
     }
 }
 
-extension Request {
+private extension Request {
     /// Pull response_url from the formURLEncoded body
     /// return BadRequest error if missing
     func responseUrl() throws -> String {
@@ -43,7 +52,7 @@ extension Request {
         }
         return responseUrl
     }
-
+    
     /// Pull text from the formURLEncoded body
     /// return BadRequest error if missing
     func text() throws -> String {
